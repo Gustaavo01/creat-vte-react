@@ -86,6 +86,8 @@ app.post("/api/contato", async (req, res) => {
 app.get("/health", (req, res) => {
   res.json({ status: "ok" });
 });
+app.get("/", (req, res) => { res.json({ message: "API online", ok: true }); });
+app.get("/api", (req, res) => { res.json({ message: "API raiz", ok: true }); });
 
 app.get("/check-cookie", (req, res) => {
   const token = req.cookies.token;
@@ -107,10 +109,20 @@ app.use((err, req, res, next) => {
   res.status(500).json({ message: "Erro interno do servidor" });
 });
 
-mongoose
-  .connect(process.env.MONGO_URI)
-  .then(() => console.log(" MongoDB conectado"))
-  .catch((err) => console.error(" Erro MongoDB:", err));
+async function connectMongo() {
+  try {
+    if (mongoose.connection.readyState >= 1) return;
+    await mongoose.connect(process.env.MONGO_URI, {
+      serverSelectionTimeoutMS: Number(process.env.MONGO_SERVER_SELECTION_MS || 30000),
+      connectTimeoutMS: Number(process.env.MONGO_CONNECT_TIMEOUT_MS || 30000),
+      socketTimeoutMS: Number(process.env.MONGO_SOCKET_TIMEOUT_MS || 45000),
+    });
+    console.log(" MongoDB conectado");
+  } catch (err) {
+    console.error(" Erro MongoDB:", err);
+  }
+}
+connectMongo();
 
 if (isVercel) {
   module.exports = app;
@@ -123,7 +135,7 @@ if (isVercel) {
   const shutdown = async () => {
     try {
       await mongoose.connection.close();
-    } catch {}
+    } catch { }
     server.close(() => process.exit(0));
   };
   process.on("SIGINT", shutdown);
