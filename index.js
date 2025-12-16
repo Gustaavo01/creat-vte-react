@@ -10,6 +10,7 @@ dotenv.config();
 const app = express();
 app.disable("x-powered-by");
 app.set("trust proxy", 1);
+const isVercel = !!process.env.VERCEL;
 
 app.use(express.json({ limit: "1mb" }));
 app.use(cookieParser());
@@ -111,18 +112,20 @@ mongoose
   .then(() => console.log(" MongoDB conectado"))
   .catch((err) => console.error(" Erro MongoDB:", err));
 
-const PORT = process.env.PORT || 5000;
-const server = app.listen(PORT, () => {
-  console.log(`Servidor rodando na porta ${PORT}`);
-  console.log(`CORS origin: ${corsOrigin}`);
-});
-
-const shutdown = async () => {
-  try {
-    await mongoose.connection.close();
-  } catch { }
-  server.close(() => process.exit(0));
-};
-
-process.on("SIGINT", shutdown);
-process.on("SIGTERM", shutdown);
+if (isVercel) {
+  module.exports = app;
+} else {
+  const PORT = process.env.PORT || 5000;
+  const server = app.listen(PORT, () => {
+    console.log(`Servidor rodando na porta ${PORT}`);
+    console.log(`CORS origin: ${corsOrigin}`);
+  });
+  const shutdown = async () => {
+    try {
+      await mongoose.connection.close();
+    } catch {}
+    server.close(() => process.exit(0));
+  };
+  process.on("SIGINT", shutdown);
+  process.on("SIGTERM", shutdown);
+}
