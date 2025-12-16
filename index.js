@@ -39,6 +39,7 @@ const productRoutes = require("./routes/products");
 const sendEmail = require("./utils/SendEmail");
 
 app.use("/auth", authRoutes);
+app.use("/api/auth", authRoutes);
 app.use("/api/newsletter", newsletterRoutes);
 app.use("/api/produtos", productRoutes);
 app.use("/api/users", userRoutes);
@@ -97,6 +98,9 @@ app.get("/check-cookie", (req, res) => {
 
   res.json({ message: "Cookie JWT encontrado!", token });
 });
+
+app.get("/favicon.ico", (req, res) => res.status(204).end());
+app.get("/favicon.png", (req, res) => res.status(204).end());
 
 
 app.use((req, res) => {
