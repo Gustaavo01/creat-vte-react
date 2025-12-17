@@ -15,11 +15,22 @@ const isVercel = !!process.env.VERCEL;
 app.use(express.json({ limit: "1mb" }));
 app.use(cookieParser());
 
-const corsOrigin = process.env.FRONTEND_URL || "http://localhost:5173";
+const allowedOrigins = [
+  String(process.env.FRONTEND_URL || "").trim(),
+  "http://localhost:5173",
+  "https://ciadepijamas.netlify.app",
+  "https://creat-vte-react.vercel.app",
+].filter(Boolean);
 
 app.use(
   cors({
-    origin: corsOrigin,
+    origin: (origin, cb) => {
+      const o = String(origin || "").trim();
+      if (!o) return cb(null, true);
+      const base = o.replace(/\/$/, "");
+      const ok = allowedOrigins.includes(base);
+      cb(null, ok);
+    },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
@@ -134,7 +145,7 @@ if (isVercel) {
   const PORT = process.env.PORT || 5000;
   const server = app.listen(PORT, () => {
     console.log(`Servidor rodando na porta ${PORT}`);
-    console.log(`CORS origin: ${corsOrigin}`);
+    console.log(`CORS origins: ${allowedOrigins.join(", ")}`);
   });
   const shutdown = async () => {
     try {
