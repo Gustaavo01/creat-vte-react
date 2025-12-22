@@ -358,7 +358,7 @@ router.post("/recuperar-senha", checkEmailLimit, async (req, res) => {
     });
 
 
-
+ 
     res.json({ message: "E-mail de recuperação enviado com sucesso." });
   } catch (err) {
     console.error(" Erro em /recuperar-senha:", err);
@@ -366,6 +366,32 @@ router.post("/recuperar-senha", checkEmailLimit, async (req, res) => {
   }
 });
 
+router.post("/reenviar-verificacao", checkEmailLimit, async (req, res) => {
+  try {
+    const { email } = req.body;
+    const normalizedEmail = normalizeStr(email).toLowerCase();
+    console.log(" Reenvio de verificação:", normalizedEmail);
+    if (!normalizedEmail) return res.status(400).json({ message: "Informe o e-mail." });
+    if (!isValidEmail(normalizedEmail)) return res.status(400).json({ message: "E-mail inválido." });
+    const user = await User.findOne({ email: normalizedEmail });
+    if (!user) return res.status(400).json({ message: "Usuário não encontrado." });
+    if (user.isVerified) return res.status(400).json({ message: "Conta já verificada." });
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "1d" });
+    const verifyLink = `${FRONTEND_URL}/verificar/${token}`;
+    await transporter.sendMail({
+      from: `"Loja Pijamas" <${process.env.EMAIL_USER}>`,
+      to: normalizedEmail,
+      subject: "Ative sua conta na Loja Pijamas",
+      html: `<h2>Olá, ${user.name}</h2>
+             <p>Ative sua conta clicando no link abaixo:</p>
+             <a href="${verifyLink}" target="_blank">Ativar conta</a>`,
+    });
+    res.json({ message: "Link de verificação reenviado com sucesso." });
+  } catch (err) {
+    console.error(" Erro em /reenviar-verificacao:", err);
+    res.status(500).json({ message: "Erro ao reenviar verificação." });
+  }
+});
 
 router.post("/trocar-senha/:token", async (req, res) => {
   try {
